@@ -1,0 +1,6 @@
+numpy
+sentence-transformers
+PyMuPDF
+torch
+transformers
+scikit-learn
