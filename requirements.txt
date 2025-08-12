@@ -1,6 +1,7 @@
+streamlit
+pandas
 numpy
-sentence-transformers
-PyMuPDF
-torch
-transformers
 scikit-learn
+transformers
+torch
+nltk
