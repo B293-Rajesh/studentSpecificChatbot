@@ -47,7 +47,7 @@ def query_textbook(model, store, question):
 
 # MAIN
 if __name__ == "__main__":
-    filepath = "C:/Users/Rishi/OneDrive/Desktop/rag/x_biology_em.pdf"  # Change this
+    filepath = "x_biology_em.pdf"  # Change this
     question = "What is respiration?"
 
     text = load_textbook_pdf(filepath)
