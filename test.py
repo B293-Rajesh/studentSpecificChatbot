@@ -45,12 +45,4 @@ def query_textbook(model, store, question):
     for i, (text, dist) in enumerate(results, 1):
         print(f"{i}. [{dist:.4f}] {text}\n")
 
-# MAIN
-if __name__ == "__main__":
-    filepath = "x_biology_em.pdf"  # Change this
-    question = "What is respiration?"
 
-    text = load_textbook_pdf(filepath)
-    chunks = chunk_text(text)
-    model, store = index_textbook(chunks)
-    query_textbook(model, store, question)
