@@ -1,6 +1,5 @@
 import streamlit as st
-from myvectorstore import index
-import test
+import test as t
 st.set_page_config(page_title="Student Specific Chatbot", page_icon="🤖", layout="wide")
 
 st.title("🎓 Student Specific Chatbot")
@@ -15,9 +14,7 @@ if user_input:
     st.write("*(This is where the chatbot's answer will appear.)*")
 
 filepath = "x_biology_em.pdf"  # Change this
-question = "What is respiration?"
-
-text = load_textbook_pdf(filepath)
-chunks = chunk_text(text)
-model, store = index_textbook(chunks)
-query_textbook(model, store, question)
+text = t.load_textbook_pdf(filepath)
+chunks = t.chunk_text(text)
+model, store = t.index_textbook(chunks)
+st.write(t.query_textbook(model, store, user_input))
