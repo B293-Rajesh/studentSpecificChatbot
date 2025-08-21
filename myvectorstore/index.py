@@ -69,16 +69,16 @@ def chunk_text(text, max_tokens=100):
 
 # STEP 2: Index chunks (always overwrite index)
 def index_textbook(chunks):
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")  # ✅ force CPU
     vectors = model.encode(chunks)
     
-    # ✅ Always create fresh index (ignore old pickle)
     if os.path.exists("vector_index.pkl"):
         os.remove("vector_index.pkl")
     
     store = SimpleVectorStore(dim=384)
     store.add(vectors, chunks)
     return model, store
+
 
 # STEP 3: Search for a query
 def query_textbook(model, store, question):
