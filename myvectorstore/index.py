@@ -3,7 +3,7 @@ import pickle
 import os
 
 class SimpleVectorStore:
-    def _init_(self, dim, index_path="vector_index.pkl"):
+    def __init__(self, dim, index_path="vector_index.pkl"):
         self.dim = dim
         self.index_path = index_path
         self.vectors = []
