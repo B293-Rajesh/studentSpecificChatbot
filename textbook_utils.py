@@ -41,6 +41,5 @@ def index_textbook(chunks):
 def query_textbook(model, store, question):
     query_vec = model.encode([question])[0]
     results = store.search(query_vec, k=3)
-    print(f"\n Top matches for: '{question}'\n")
-    for i, (text, dist) in enumerate(results, 1):
-        print(f"{i}. [{dist:.4f}] {text}\n")
+    return results   # return list of (chunk, dist)
+
