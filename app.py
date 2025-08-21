@@ -1,5 +1,5 @@
 import streamlit as st
-from test import load_textbook_pdf, chunk_text, index_textbook, query_textbook
+from textbook_utils import load_textbook_pdf, chunk_text, index_textbook, query_textbook
 
 st.set_page_config(page_title="Student Specific Chatbot", page_icon="🤖", layout="wide")
 
