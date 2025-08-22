@@ -1,7 +1,12 @@
+# Python packages
 streamlit
-faiss-cpu
-langchain
+langchain>=0.0.300
 langchain-community
 sentence-transformers
 transformers
+torch
+faiss-cpu
 pypdf
+pdf2image
+pytesseract
+numpy
