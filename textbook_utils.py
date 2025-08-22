@@ -1,12 +1,10 @@
 import fitz  # PyMuPDF
 import re
-from sentence_transformers import SentenceTransformer
-import numpy as np
-import faiss
 from langchain.vectorstores import FAISS
-from langchain.docstore.document import Document
+from langchain.schema import Document
+from langchain.embeddings import HuggingFaceEmbeddings
 
-# Load text from PDF
+# STEP 1: Load PDF text
 def load_pdf_text(pdf_path):
     doc = fitz.open(pdf_path)
     text = ""
@@ -16,7 +14,7 @@ def load_pdf_text(pdf_path):
         raise ValueError("No text found in PDF.")
     return text
 
-# Chunk text
+# STEP 2: Chunk text
 def chunk_text(text, max_tokens=200):
     sentences = re.split(r'(?<=[.!?]) +', text)
     chunks, current_chunk = [], []
@@ -34,13 +32,16 @@ def chunk_text(text, max_tokens=200):
         chunks.append(" ".join(current_chunk))
     return chunks
 
-# Build FAISS vector store
+# STEP 3: Build FAISS vector store using LangChain
 def index_pdf(pdf_path):
     text = load_pdf_text(pdf_path)
     chunks = chunk_text(text)
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    embeddings = model.encode(chunks, convert_to_numpy=True)
-
     docs = [Document(page_content=chunk) for chunk in chunks]
-    store = FAISS.from_documents(docs, model)
-    return model, store, chunks
+    
+    # HuggingFace embeddings wrapper
+    embedder = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    
+    # Build FAISS index
+    store = FAISS.from_documents(docs, embedder)
+    
+    return chunks, store
