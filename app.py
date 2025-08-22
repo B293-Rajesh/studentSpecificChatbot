@@ -12,30 +12,31 @@ user_input = st.text_input("Your question:")
 
 @st.cache_data
 def setup(pdf_file):
-    model, store, chunks = index_pdf(pdf_file)
-
-    # Use public Flan-T5 model for text generation
-    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
-    llm = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-large")
-    return model, store, chunks, tokenizer, llm
+    chunks, store = index_pdf(pdf_file)
+    
+    # Load Flan-T5 model for answer generation
+    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
+    llm = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
+    
+    return chunks, store, tokenizer, llm
 
 if uploaded_file:
-    model, store, chunks, tokenizer, llm = setup(uploaded_file)
+    chunks, store, tokenizer, llm = setup(uploaded_file)
 
     if user_input:
-        # Get query embedding
-        query_vec = model.encode([user_input])[0]
+        # Retrieve top 3 chunks
         results = store.similarity_search(user_input, k=3)
-        st.write("📚 Top 3 Relevant Passages")
         context = ""
+        st.write("📚 Top 3 Relevant Passages")
         for i, doc in enumerate(results, 1):
             st.write(f"{i}. {doc.page_content[:300]}...")
             context += doc.page_content + "\n"
 
-        # Generate response
-        prompt = f"Use the following context to answer the question:\n{context}\nQuestion: {user_input}\nAnswer:"
+        # Generate answer using Flan-T5
+        prompt = f"Answer the question based on context:\n{context}\nQuestion: {user_input}\nAnswer:"
         inputs = tokenizer(prompt, return_tensors="pt")
         outputs = llm.generate(**inputs, max_new_tokens=150)
         answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
         st.write("🧠 Answer")
         st.write(answer)
