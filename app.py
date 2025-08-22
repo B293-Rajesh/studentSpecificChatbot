@@ -95,23 +95,27 @@ uploaded_file = st.file_uploader("Upload PDF", type="pdf")
 user_input = st.text_input("Your question:")
 
 if uploaded_file and user_input:
-    # Index PDF
-    embed_model, store, chunks = index_pdf(uploaded_file)
+    try:
+        # Index PDF
+        embed_model, store, chunks = index_pdf(uploaded_file)
 
-    # Load LLM
-    tokenizer, llm = load_llm()
+        # Load LLM
+        tokenizer, llm = load_llm()
 
-    # Get query embedding and search relevant chunks
-    query_vec = embed_model.encode([user_input])[0]
-    relevant_chunks = store.search(query_vec, k=3)
-    context = "\n".join(relevant_chunks)
+        # Embed query
+        query_vec = embed_model.encode([user_input])[0]
+        relevant_chunks = store.search(query_vec, k=3)
+        context = "\n".join(relevant_chunks)
 
-    # Generate answer
-    prompt = f"Answer the question based on the following context:\n{context}\nQuestion: {user_input}\nAnswer:"
-    inputs = tokenizer(prompt, return_tensors="pt")
-    outputs = llm.generate(**inputs, max_new_tokens=300)
-    answer = tokenizer.decode(outputs[0][inputs['input_ids'].shape[-1]:], skip_special_tokens=True)
+        # Prepare prompt
+        prompt = f"Answer the question based on the following context:\n{context}\nQuestion: {user_input}\nAnswer:"
 
-    # Display answer
-    st.write("🧠 Answer")
-    st.write(answer)
+        # Tokenize and generate
+        inputs = tokenizer(prompt, return_tensors="pt")
+        outputs = llm.generate(**inputs, max_new_tokens=150)
+        answer = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+
+        st.write("🧠 Answer")
+        st.write(answer if answer else "Sorry, could not generate an answer.")
+    except Exception as e:
+        st.error(f"Error: {e}")
