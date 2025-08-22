@@ -21,6 +21,8 @@ if user_input:
 
     st.write(f"You asked: {user_input}")
     st.write("📖 Top 3 Relevant Passages")
-
+    count = 0
     for i, passage in enumerate(results, 1):
         st.write(f"{i}. {passage}")
+        count += 1
+    st.write(count)
