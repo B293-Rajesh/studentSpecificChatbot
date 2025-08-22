@@ -1,5 +1,6 @@
 streamlit
 sentence-transformers
+transformers
 torch
-numpy
+accelerate
 PyPDF2
