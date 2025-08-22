@@ -1,10 +1,5 @@
 streamlit
-pandas
 sentence-transformers
-numpy
-pymupdf
-scikit-learn
-transformers
 torch
-nltk
+numpy
 PyPDF2
