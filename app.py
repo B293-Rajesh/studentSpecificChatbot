@@ -7,7 +7,7 @@ st.write("Welcome! Ask me a question about your syllabus or notes.")
 # Load and index textbook once
 @st.cache_resource
 def setup():
-    text = load_textbook("textbook.txt")
+    text = load_textbook("x_biology_em.pdf")
     chunks = chunk_text(text)
     return index_textbook(chunks)
 
