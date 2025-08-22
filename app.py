@@ -1,58 +1,45 @@
 import streamlit as st
-import fitz  # PyMuPDF
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.chains import RetrievalQA
-from langchain.llms import HuggingFaceHub
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from textbook_utils import index_pdf
+import torch
 
-# ----------- PDF Loader using PyMuPDF -----------
-def load_pdf_text(pdf_path):
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text += page.get_text("text")
-    return text
-
-# ----------- Index Builder -----------
-def build_index(text):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = splitter.split_text(text)
-
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    store = FAISS.from_texts(chunks, embeddings)
-    return store
-
-# ----------- QA Chain -----------
-def build_qa(store):
-    retriever = store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-    llm = HuggingFaceHub(
-        repo_id="google/flan-t5-base",  # lightweight open model
-        model_kwargs={"temperature": 0.2, "max_length": 512}
-    )
-    return RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-
-# ----------- Streamlit UI -----------
+st.set_page_config(page_title="Student Specific Chatbot", page_icon="🤖", layout="wide")
 st.title("🎓 Student Specific Chatbot")
 st.write("Upload your textbook (PDF) and ask questions about it.")
 
-uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+uploaded_file = st.file_uploader("Upload PDF", type="pdf")
+user_input = st.text_input("Your question:")
+
+@st.cache_data
+def setup(pdf_file):
+    model, store, chunks = index_pdf(pdf_file)
+    # Load LLaMA model
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-3B-Instruct")
+    llm = AutoModelForCausalLM.from_pretrained(
+        "meta-llama/Llama-3.2-3B-Instruct",
+        device_map="auto",
+        torch_dtype=torch.float16
+    )
+    return model, store, chunks, tokenizer, llm
 
 if uploaded_file:
-    with open("uploaded.pdf", "wb") as f:
-        f.write(uploaded_file.read())
+    pdf_path = uploaded_file
+    model, store, chunks, tokenizer, llm = setup(pdf_path)
 
-    with st.spinner("Extracting and indexing PDF..."):
-        text = load_pdf_text("uploaded.pdf")
-        if not text.strip():
-            st.error("❌ No text found in PDF. This may be a scanned (image-only) file.")
-        else:
-            store = build_index(text)
-            qa = build_qa(store)
-            st.success("✅ PDF indexed! Ask your questions below:")
+    if user_input:
+        # Get query embedding
+        query_vec = model.encode([user_input])[0]
+        results = store.search(query_vec, k=3)
+        st.write("📚 Top 3 Relevant Passages")
+        context = ""
+        for i, (chunk, dist) in enumerate(results, 1):
+            st.write(f"{i}. (similarity: {dist:.4f}) {chunk[:300]}...")
+            context += chunk + "\n"
 
-            query = st.text_input("Ask a question about your textbook:")
-            if query:
-                with st.spinner("Generating answer..."):
-                    answer = qa.run(query)
-                    st.write("**Answer:**", answer)
+        # Generate response
+        prompt = f"Use the following context to answer the question:\n{context}\nQuestion: {user_input}\nAnswer:"
+        inputs = tokenizer(prompt, return_tensors="pt").to(llm.device)
+        outputs = llm.generate(**inputs, max_new_tokens=150)
+        answer = tokenizer.decode(outputs[0][inputs['input_ids'].shape[-1]:], skip_special_tokens=True)
+        st.write("🧠 Answer")
+        st.write(answer)
