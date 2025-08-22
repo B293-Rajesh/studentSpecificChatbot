@@ -1,45 +1,56 @@
-from myvectorstore.index import SimpleVectorStore
+# textbook_utils.py
+import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer
-import os
-import fitz
-import re
+import numpy as np
 
-# STEP 1: Load and chunk PDF
+# ----------------- PDF Loader -----------------
 def load_textbook_pdf(filepath):
     doc = fitz.open(filepath)
-    text = "".join([page.get_text() for page in doc])
+    text = ""
+    for page in doc:
+        text += page.get_text("text")
     return text
 
-def chunk_text(text, max_tokens=100):
-    
-    sentences = re.split(r'(?<=[.!?]) +', text)
-    chunks, current_chunk = [], []
-    current_len = 0
-
-    for sentence in sentences:
-        word_count = len(sentence.split())
-        if current_len + word_count > max_tokens:
-            chunks.append(' '.join(current_chunk))
-            current_chunk = [sentence]
-            current_len = word_count
-        else:
-            current_chunk.append(sentence)
-            current_len += word_count
-    if current_chunk:
-        chunks.append(' '.join(current_chunk))
+# ----------------- Chunking -----------------
+def chunk_text(text, chunk_size=500, overlap=50):
+    words = text.split()
+    chunks = []
+    i = 0
+    while i < len(words):
+        chunk = words[i:i+chunk_size]
+        chunks.append(" ".join(chunk))
+        i += chunk_size - overlap
     return chunks
 
-# STEP 2: Index chunks
+# ----------------- Vector Store -----------------
+class SimpleVectorStore:
+    def __init__(self, dim):
+        self.vectors = []
+        self.chunks = []
+        self.dim = dim
+
+    def add(self, vector, chunk):
+        self.vectors.append(vector)
+        self.chunks.append(chunk)
+
+    def search(self, query_vector, top_k=3):
+        scores = []
+        for i, vec in enumerate(self.vectors):
+            sim = np.dot(query_vector, vec) / (np.linalg.norm(query_vector) * np.linalg.norm(vec))
+            scores.append((self.chunks[i], float(sim)))
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return scores[:top_k]
+
+# ----------------- Indexing -----------------
 def index_textbook(chunks):
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    vectors = model.encode(chunks)
+    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")  # force CPU
     store = SimpleVectorStore(dim=384)
-    store.add(vectors, chunks)
+    for chunk in chunks:
+        vec = model.encode(chunk)
+        store.add(vec, chunk)
     return model, store
 
-# STEP 3: Search for a query
-def query_textbook(model, store, question):
-    query_vec = model.encode([question])[0]
-    results = store.search(query_vec, k=3)
-    return results   # return list of (chunk, dist)
-
+# ----------------- Querying -----------------
+def query_textbook(model, store, query, top_k=3):
+    query_vec = model.encode(query)
+    return store.search(query_vec, top_k=top_k)
