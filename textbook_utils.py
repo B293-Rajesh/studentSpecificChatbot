@@ -1,31 +1,18 @@
-import numpy as np
-import faiss
+from langchain.chains import RetrievalQA
+from transformers import pipeline
+from langchain.llms import HuggingFacePipeline
 
-def process_pdf(pdf_path):
-    import fitz  # PyMuPDF
-    doc = fitz.open(pdf_path)
-    text_chunks = []
-    for page in doc:
-        text = page.get_text("text")
-        if text.strip():
-            lines = [line.strip() for line in text.split("\n") if line.strip()]
-            text_chunks.extend(lines)
-    return text_chunks
+def build_qa_chain(store):
+    # HuggingFace generator
+    generator = pipeline("text2text-generation", model="google/flan-t5-base")
 
-def query_index(store, query, top_k=3):
-    """
-    store = {"index": FAISS_index, "chunks": [chunks], "embedder": model}
-    """
-    embedder = store["embedder"]
-    index = store["index"]
-    chunks = store["chunks"]
+    llm = HuggingFacePipeline(pipeline=generator)
 
-    # Encode query
-    q_emb = embedder.encode([query], convert_to_numpy=True, normalize_embeddings=True)
-    D, I = index.search(q_emb, top_k)  # similarity search
-
-    results = []
-    for i, score in zip(I[0], D[0]):
-        if i < len(chunks):  # avoid out of range
-            results.append((chunks[i], float(score)))
-    return results
+    # RetrievalQA chain
+    qa = RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=store.as_retriever(search_kwargs={"k": 3}),
+        chain_type="stuff",   # simple prompt
+        return_source_documents=True
+    )
+    return qa
