@@ -1,7 +1,7 @@
 streamlit
-pymupdf
-langchain
-langchain-community
-faiss-cpu
+torch
+transformers
 sentence-transformers
-huggingface-hub
+faiss-cpu
+numpy
+pymupdf
