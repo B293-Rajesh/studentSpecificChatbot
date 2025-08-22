@@ -1,24 +1,10 @@
-import numpy as np
+from textbook_utils import load_textbook_pdf, chunk_text, index_textbook, retrieve_top_k
 
-class SimpleVectorStore:
-    def __init__(self):
-        self.vectors = []
-        self.text_ids = []
-
-    def add(self, vector, text_id):
-        self.vectors.append(vector)
-        self.text_ids.append(text_id)
-
-    def search(self, query_vector, top_k=3):
-        if not self.vectors:
-            return []
-
-        vectors = np.array(self.vectors)
-        query_vector = np.array(query_vector)
-
-        # Cosine similarity
-        sims = np.dot(vectors, query_vector) / (
-            np.linalg.norm(vectors, axis=1) * np.linalg.norm(query_vector)
-        )
-        top_k_idx = np.argsort(sims)[-top_k:][::-1]
-        return [self.text_ids[i] for i in top_k_idx]
+if __name__ == "__main__":
+    text = load_textbook_pdf("x_biologyA_em.pdf")
+    chunks = chunk_text(text, chunk_size=500, overlap=60)
+    emb_model, store = index_textbook(chunks)
+    print(f"Indexed {len(chunks)} chunks.")
+    hits = retrieve_top_k(emb_model, store, "Explain Kwashiorkor disease", k=3)
+    for i, (p, s) in enumerate(hits, 1):
+        print(f"\n{i}. score={s:.4f}\n{p[:400]}...")
