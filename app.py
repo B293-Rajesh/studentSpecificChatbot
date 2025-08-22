@@ -4,7 +4,7 @@ from sentence_transformers import SentenceTransformer
 
 @st.cache_resource
 def setup():
-    text = load_textbook("x_biologyA_em.pdf")  # load from your PDF
+    text = load_textbook("x_biology_em.pdf")  # load from your PDF
     chunks = chunk_text(text)
     return index_textbook(chunks)
 
