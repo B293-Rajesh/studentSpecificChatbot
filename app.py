@@ -108,14 +108,38 @@ if uploaded_file and user_input:
         context = "\n".join(relevant_chunks)
 
         # Prepare prompt
-        prompt = f"Answer the question based on the following context:\n{context}\nQuestion: {user_input}\nAnswer:"
+        prompt = f"""
+You are a helpful tutor. Always answer in complete sentences.
+Use the following context to answer the question.
+
+Context:
+{context}
+
+Question: {user_input}
+Answer in 3-4 complete sentences:
+"""
 
         # Tokenize and generate
-        inputs = tokenizer(prompt, return_tensors="pt")
-        outputs = llm.generate(**inputs, max_new_tokens=150)
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+        outputs = llm.generate(
+            **inputs,
+            max_new_tokens=200,
+            num_beams=5,
+            early_stopping=True,
+            do_sample=True,
+            top_k=50,
+            top_p=0.9,
+            temperature=0.7
+        )
+
+        # Decode and clean up
         answer = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+        if not answer.endswith((".", "?", "!")):
+            last_punct = max(answer.rfind("."), answer.rfind("?"), answer.rfind("!"))
+            if last_punct != -1:
+                answer = answer[:last_punct+1]
 
         st.write("🧠 Answer")
-        st.write(answer if answer else "Sorry, could not generate an answer.")
+        st.write(answer if answer else "Sorry, I couldn’t generate a complete answer.")
     except Exception as e:
         st.error(f"Error: {e}")
