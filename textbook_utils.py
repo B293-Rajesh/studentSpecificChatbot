@@ -1,50 +1,57 @@
-import os
-import re
-import numpy as np
-from sentence_transformers import SentenceTransformer
-from index import SimpleVectorStore
 import PyPDF2
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
-def load_textbook(file_path):
-    """
-    Load textbook from .txt or .pdf file.
-    """
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
 
-    if file_path.endswith(".txt"):
-        with open(file_path, "r", encoding="utf-8") as f:
-            return f.read()
-    elif file_path.endswith(".pdf"):
-        text = ""
-        with open(file_path, "rb") as f:
-            reader = PyPDF2.PdfReader(f)
-            for page in reader.pages:
-                text += page.extract_text() or ""
-        return text
-    else:
-        raise ValueError("Unsupported file format. Use .txt or .pdf")
+def load_textbook(file_path: str) -> str:
+    """Read PDF and return text."""
+    text = ""
+    with open(file_path, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+    return text
 
-def chunk_text(text, chunk_size=500):
-    """
-    Split text into chunks of approximately `chunk_size` words.
-    """
-    words = re.split(r"\s+", text)
-    chunks = []
-    for i in range(0, len(words), chunk_size):
-        chunk = " ".join(words[i:i+chunk_size])
-        chunks.append(chunk)
+
+def chunk_text(text: str, chunk_size: int = 500) -> list:
+    """Split text into smaller chunks."""
+    words = text.split()
+    chunks, chunk = [], []
+    for word in words:
+        chunk.append(word)
+        if len(chunk) >= chunk_size:
+            chunks.append(" ".join(chunk))
+            chunk = []
+    if chunk:
+        chunks.append(" ".join(chunk))
     return chunks
 
-def index_textbook(chunks):
-    """
-    Build vector index from textbook chunks.
-    """
-    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
-    embeddings = model.encode(chunks, show_progress_bar=True)
 
+class SimpleVectorStore:
+    def __init__(self):
+        self.vectors = []
+        self.texts = []
+
+    def add(self, vector, text):
+        self.vectors.append(vector)
+        self.texts.append(text)
+
+    def query(self, query_vector, top_k=3):
+        similarities = []
+        for i, v in enumerate(self.vectors):
+            sim = np.dot(query_vector, v) / (np.linalg.norm(query_vector) * np.linalg.norm(v))
+            similarities.append((sim, self.texts[i]))
+        similarities.sort(key=lambda x: x[0], reverse=True)
+        return [text for _, text in similarities[:top_k]]
+
+
+def index_textbook(chunks):
+    """Create embeddings for chunks and store in vector DB."""
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")
     store = SimpleVectorStore()
-    for chunk, emb in zip(chunks, embeddings):
-        store.add(emb, chunk)
+
+    for chunk in chunks:
+        vector = model.encode(chunk)
+        store.add(vector, chunk)
 
     return model, store
