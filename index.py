@@ -12,8 +12,11 @@ def load_index(pdf_path: str):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
 
-    # Embeddings
-    embedder = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    # Embedding model (force proper loading)
+    embedder = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",  # 384-dim model
+        model_kwargs={"device": "cpu"}  # or "cuda" if you have GPU
+    )
 
     # Build FAISS index
     store = FAISS.from_documents(chunks, embedder)
