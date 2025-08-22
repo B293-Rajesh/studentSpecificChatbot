@@ -1,7 +1,7 @@
 streamlit
-torch
-transformers
-sentence-transformers
-faiss-cpu
 pymupdf
-langchain
+faiss-cpu
+sentence-transformers
+transformers
+accelerate
+torch
