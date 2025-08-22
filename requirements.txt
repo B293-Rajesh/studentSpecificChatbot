@@ -7,3 +7,5 @@ huggingface-hub
 pymupdf
 pytesseract
 pillow
+tesseract-ocr
+poppler-utils
