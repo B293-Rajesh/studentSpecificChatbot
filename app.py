@@ -13,7 +13,7 @@ if uploaded_file:
         f.write(uploaded_file.getbuffer())
     try:
         qa = build_qa_chain("uploaded.pdf")
-        st.success("✅ PDF successfully indexed!")
+        st.success("✅ PDF successfully indexed with OCR!")
         query = st.text_input("Ask a question about your textbook:")
         if query:
             result = qa.run(query)
