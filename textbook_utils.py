@@ -10,5 +10,11 @@ def process_pdf(pdf_path):
     return [chunk.strip() for chunk in text_chunks if chunk.strip()]
 
 def query_index(store, query, top_k=3):
-    results = store.similarity_search(query, k=top_k)
-    return [res.page_content for res in results]
+    embedder = store["embedder"]
+    index = store["index"]
+    chunks = store["chunks"]
+    
+    query_vec = embedder.encode([query], convert_to_numpy=True, normalize_embeddings=True)
+    scores, ids = index.search(query_vec, top_k)
+    
+    return [chunks[i] for i in ids[0]]
