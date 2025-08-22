@@ -1,32 +1,26 @@
 import streamlit as st
 from textbook_utils import load_textbook, chunk_text, index_textbook
+from sentence_transformers import SentenceTransformer
 
-st.title("🎓 Student Specific Chatbot")
-st.write("Welcome! Ask me a question about your syllabus or notes.")
-
-# Load and index textbook once
 @st.cache_resource
 def setup():
-    text = load_textbook("x_biology_em.pdf")
+    text = load_textbook("x_biologyA_em.pdf")  # load from your PDF
     chunks = chunk_text(text)
     return index_textbook(chunks)
 
 model, store = setup()
 
-# User input
+st.title("🎓 Student Specific Chatbot")
+st.write("Welcome! Ask me a question about your syllabus or notes.")
+
 user_input = st.text_input("Your question:")
 
 if user_input:
+    query_vec = model.encode(user_input)
+    results = store.query(query_vec, top_k=3)
+
     st.write(f"You asked: {user_input}")
+    st.write("📖 Top 3 Relevant Passages")
 
-    # Encode query
-    query_embedding = model.encode(user_input, convert_to_numpy=True)
-
-    # Search top 3 chunks
-    results = store.search(query_embedding, top_k=3)
-
-    st.subheader("📖 Top 3 Relevant Passages")
-    for i, (text, score) in enumerate(results, 1):
-        st.write(f"**{i}. (similarity score: {score:.4f})**")
-        st.write(text)
-        st.write("---")
+    for i, passage in enumerate(results, 1):
+        st.write(f"{i}. {passage}")
