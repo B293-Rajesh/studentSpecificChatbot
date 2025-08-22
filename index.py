@@ -1,27 +1,9 @@
-import numpy as np
+from textbook_utils import load_textbook, chunk_text, index_textbook
 
-class SimpleVectorStore:
-    def __init__(self, dim):
-        self.dim = dim
-        self.embeddings = []
-        self.texts = []
+if __name__ == "__main__":
+    # Load your PDF
+    text = load_textbook("x_biologyA_em.pdf")
+    chunks = chunk_text(text)
+    model, store = index_textbook(chunks)
 
-    def add(self, text, embedding):
-        self.texts.append(text)
-        self.embeddings.append(embedding)
-
-    def search(self, query_embedding, top_k=3):
-        if not self.embeddings:
-            return []
-
-        embeddings = np.array(self.embeddings)
-        query = np.array(query_embedding)
-
-        # Cosine similarity
-        dot_products = np.dot(embeddings, query)
-        norms = np.linalg.norm(embeddings, axis=1) * np.linalg.norm(query)
-        similarities = dot_products / norms
-
-        top_indices = np.argsort(similarities)[::-1][:top_k]
-
-        return [(self.texts[i], float(similarities[i])) for i in top_indices]
+    print(f"✅ Indexed {len(chunks)} chunks from the textbook.")
