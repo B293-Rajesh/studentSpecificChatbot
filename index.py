@@ -1,30 +1,21 @@
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
-from textbook_utils import process_pdf
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
-def load_index(pdf_path):
-    # Load embeddings model
-    embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    
-    # Extract chunks
-    chunks = process_pdf(pdf_path)
-    if not chunks:
-        raise ValueError(f"No text chunks extracted from {pdf_path}")
-    
-    # Encode
-    embeddings = embedder.encode(
-        chunks, convert_to_numpy=True, normalize_embeddings=True
-    )
-    
-    # Ensure embeddings are 2D
-    embeddings = np.array(embeddings)
-    if embeddings.ndim == 1:
-        embeddings = embeddings.reshape(1, -1)
-    
+def load_index(pdf_path: str):
+    # Load PDF
+    loader = PyPDFLoader(pdf_path)
+    docs = loader.load()
+
+    # Split into chunks
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    chunks = splitter.split_documents(docs)
+
+    # Embeddings
+    embedder = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
     # Build FAISS index
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
-    
-    return {"index": index, "chunks": chunks, "embedder": embedder}, chunks
+    store = FAISS.from_documents(chunks, embedder)
+
+    return store
