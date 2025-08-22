@@ -1,7 +1,7 @@
 streamlit
-torch
 transformers
+torch
 sentence-transformers
 faiss-cpu
-numpy
+langchain
 pymupdf
