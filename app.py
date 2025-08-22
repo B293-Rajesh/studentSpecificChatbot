@@ -4,7 +4,7 @@ import re
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # -----------------------------
 # PDF Text Loader
@@ -57,7 +57,7 @@ class SimpleVectorStore:
             self.index = faiss.IndexFlatL2(self.dim)
             self.index.add(np.stack(self.vectors))
 
-    def search(self, query_vector, k=3):
+    def search(self, query_vector, k=5):
         query_vector = np.array(query_vector, dtype=np.float32).reshape(1, -1)
         D, I = self.index.search(query_vector, k)
         results = [self.metadata[i] for i in I[0]]
@@ -76,12 +76,17 @@ def index_pdf(pdf_file):
     return embed_model, store, chunks
 
 # -----------------------------
-# Load LLM
+# Load LLaMA Model
 # -----------------------------
 @st.cache_resource
 def load_llm():
-    tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
-    llm = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
+    model_id = "meta-llama/Llama-3.2-3b-instruct"
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    llm = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        device_map="auto",     # lets HF auto-place on GPU if available
+        torch_dtype="auto"
+    )
     return tokenizer, llm
 
 # -----------------------------
@@ -99,45 +104,38 @@ if uploaded_file and user_input:
         # Index PDF
         embed_model, store, chunks = index_pdf(uploaded_file)
 
-        # Load LLM
+        # Load LLaMA
         tokenizer, llm = load_llm()
 
         # Embed query
         query_vec = embed_model.encode([user_input])[0]
-        relevant_chunks = store.search(query_vec, k=3)
+        relevant_chunks = store.search(query_vec, k=5)
         context = "\n".join(relevant_chunks)
 
-        # Prepare prompt
+        # Prepare LLaMA-style prompt
         prompt = f"""
-You are a helpful tutor. Always answer in complete sentences.
-Use the following context to answer the question.
+[INST] You are a helpful tutor. Based only on the context below, answer the question in complete sentences. 
+If the context does not contain enough information, say "I could not find this in the text."
 
 Context:
 {context}
 
 Question: {user_input}
-Answer in 3-4 complete sentences:
+Answer: [/INST]
 """
 
         # Tokenize and generate
-        inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True).to(llm.device)
         outputs = llm.generate(
             **inputs,
-            max_new_tokens=200,
-            num_beams=5,
-            early_stopping=True,
-            do_sample=True,
-            top_k=50,
+            max_new_tokens=300,
+            temperature=0.7,
             top_p=0.9,
-            temperature=0.7
+            do_sample=True
         )
 
-        # Decode and clean up
+        # Decode
         answer = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
-        if not answer.endswith((".", "?", "!")):
-            last_punct = max(answer.rfind("."), answer.rfind("?"), answer.rfind("!"))
-            if last_punct != -1:
-                answer = answer[:last_punct+1]
 
         st.write("🧠 Answer")
         st.write(answer if answer else "Sorry, I couldn’t generate a complete answer.")
