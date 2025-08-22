@@ -1,9 +1,7 @@
 streamlit
+pymupdf
 langchain
 langchain-community
 faiss-cpu
-PyPDF2
-pdf2image
-pytesseract
-transformers
-torch
+sentence-transformers
+huggingface-hub
