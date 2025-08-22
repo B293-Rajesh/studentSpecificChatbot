@@ -20,7 +20,7 @@ def load_llm():
 # ----------------------------
 @st.cache_resource
 def setup():
-    store, chunks = load_index("x_biologyA_em.pdf")
+    store, chunks = load_index("x_biology_em.pdf")
     llm = load_llm()
     return store, chunks, llm
 
