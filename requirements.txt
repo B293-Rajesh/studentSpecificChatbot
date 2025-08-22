@@ -1,12 +1,9 @@
-# Python packages
 streamlit
-langchain>=0.0.300
+langchain
 langchain-community
-sentence-transformers
-transformers
-torch
 faiss-cpu
-pypdf
-pdf2image
+sentence-transformers
+huggingface-hub
+pymupdf
 pytesseract
-numpy
+pillow
