@@ -1,30 +1,17 @@
 import streamlit as st
 from index import load_index
-from textbook_utils import build_qa_chain
 
 @st.cache_resource
-def setup():
-    store = load_index("x_biology_em.pdf")
-    qa = build_qa_chain(store)
-    return qa
+def setup(pdf_path):
+    return load_index(pdf_path)
 
-st.title("🎓 Student Specific Chatbot")
-st.write("RAG over your textbook → using LangChain + FLAN-T5")
+st.title("📘 RAG over Your Textbook")
 
-qa = setup()
+pdf_file = st.file_uploader("Upload your textbook (PDF)", type=["pdf"])
 
-user_input = st.text_input("Your question:")
+if pdf_file:
+    with open("uploaded.pdf", "wb") as f:
+        f.write(pdf_file.read())
 
-if user_input:
-    st.write(f"**You asked:** {user_input}")
-
-    result = qa({"query": user_input})
-
-    # Show retrieved passages
-    st.subheader("📚 Retrieved passages")
-    for doc in result["source_documents"]:
-        st.write(f"- {doc.page_content[:200]}...")
-
-    # Show answer
-    st.subheader("🧠 Answer")
-    st.write(result["result"])
+    qa = setup("uploaded.pdf")
+    st.success("✅ Textbook indexed successfully!")
