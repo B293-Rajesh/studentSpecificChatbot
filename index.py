@@ -1,26 +1,25 @@
-import os
-from langchain_community.document_loaders import PyPDFLoader
+# index.py
+from typing import Any
+from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-def load_index(pdf_path: str):
-    if not os.path.exists(pdf_path):
-        raise FileNotFoundError(f"❌ File not found: {pdf_path}")
+def build_index(full_text: str) -> Any:
+    """
+    Build a LangChain FAISS vector store from raw full_text.
+    Returns the FAISS store (LangChain object) which implements .as_retriever().
+    """
+    # Split full_text into Document objects with metadata
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=60)
+    docs = splitter.create_documents([full_text])
 
-    if os.path.getsize(pdf_path) == 0:
-        raise ValueError(f"❌ File is empty: {pdf_path}")
-
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
-
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks = splitter.split_documents(docs)
-
+    # Embeddings: explicit CPU device to avoid device errors
     embedder = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"}
+        model_kwargs={"device": "cpu"},
     )
 
-    store = FAISS.from_documents(chunks, embedder)
+    # Build FAISS index via LangChain community wrapper
+    store = FAISS.from_documents(docs, embedder)
     return store
