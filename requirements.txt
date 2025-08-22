@@ -2,10 +2,8 @@ streamlit
 langchain
 langchain-community
 faiss-cpu
-sentence-transformers
-huggingface-hub
-pymupdf
+PyPDF2
+pdf2image
 pytesseract
-pillow
-tesseract-ocr
-poppler-utils
+transformers
+torch
